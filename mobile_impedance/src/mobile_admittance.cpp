@@ -14,9 +14,9 @@ public:
     force_sub = n_.subscribe("/published_force", 1, &AdmittanceController::AdmittanceCallback, this);
     state_sub = n_.subscribe("/gazebo/link_states", 1, &AdmittanceController::StateCallback, this);
     joint_state_sub = n_.subscribe("/mobile_base/joint_states", 1, &AdmittanceController::JointStateCallback, this);
-    fl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_l_ew_joint_velocity_controller/command", 1000);
-    fr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_r_ew_joint_velocity_controller/command", 1000);
-    rl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_l_ew_joint_velocity_controller/command", 1000);
+    fl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_l_ew_joint_velocity_controller/command", 100);
+    fr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_r_ew_joint_velocity_controller/command", 100);
+    rl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_l_ew_joint_velocity_controller/command", 100);
     rr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_r_ew_joint_velocity_controller/command", 100);;
 
   }
@@ -81,15 +81,17 @@ public:
     ros::Rate loop_rate(100);
     while(ros::ok)
     {
-      M =   50;
-      B =   1;
-      K =   10; //20
+      M =   1;
+      B =   100;
+      // K =   100; //20
 
-      accel = 1/M*(Force - B * current_vel - K * current_pose);
-    // desired_pose << 0,0,0,0,0,0;
-    // chassis_vel = 1/B * (Force - K*current_pose);
+      // accel = M*(-Force - B * current_vel - K * current_pose);
 
-      chassis_accel << accel(0),accel(1),accel(5);
+      vel = Force/B*(1-exp(-dt/(M/B)));
+    desired_pose << 0,0,0,0,0,0;
+    
+
+    chassis_accel << vel(0),vel(1),vel(5);
 
       double s1 = sin(0);
       double c1 = cos(0);
@@ -110,7 +112,7 @@ public:
       double ps2 = sin(0);
       double pc2 = cos(0);
       // p_W3
-      double ps3 = sin(0);//not bad, go back
+      double ps3 = sin(0);
       double pc3 = cos(0);  
       // p_W4
       double ps4 = sin(0);
@@ -136,7 +138,7 @@ public:
                   s1/4.0, s2/4.0, s3/4.0, s4/4.0,
                     w1,   w2,   w3,   w4;
 
-      Eigen::MatrixXd jacobian_dot = (jacobian - past_jacobian)/dt;
+      // Eigen::MatrixXd jacobian_dot = (jacobian - past_jacobian)/dt;
         
 
       Eigen::MatrixXd jacobian_pinv = jacobian.completeOrthogonalDecomposition().pseudoInverse();
@@ -144,18 +146,14 @@ public:
       joint_vel << wheel_theta_dot_fl_ew, wheel_theta_dot_rl_ew, wheel_theta_dot_rr_ew, wheel_theta_dot_fr_ew;
       dummy<< chassis_accel(0),chassis_accel(1),chassis_accel(2);
 
-      ddthetalist = jacobian_pinv * (dummy - jacobian_dot*joint_vel);
-      dthetalist  = dthetalist + ddthetalist*dt; //?
-    
-      // dummy<< chassis_vel(0),chassis_vel(1),chassis_vel(5);
+      joint_vel = jacobian_pinv * dummy;
+       
       
-      // joint_vel = jacobian_pinv * dummy;
-      joint_vel = dthetalist;
 
-      velocity1.data = joint_vel(0);
-      velocity2.data = joint_vel(1);
-      velocity3.data = -joint_vel(2);
-      velocity4.data = -joint_vel(3);
+      velocity1.data =  joint_vel(0);
+      velocity2.data =  joint_vel(1);
+      velocity3.data =  joint_vel(2);
+      velocity4.data =  joint_vel(3);
       
       // velocity1.data = 2;
       // velocity2.data = 2;
@@ -169,6 +167,7 @@ public:
       fr_velocity_pub.publish(velocity4);
       
       ROS_WARN_STREAM( velocity1 << ", " << velocity2 << ", " << velocity3 << ", " << velocity4);
+      // std::cout << "vel" << std::endl << vel << std::endl;
       loop_rate.sleep();
       
     }
@@ -192,7 +191,8 @@ private:
   Eigen::VectorXd desired_pose = Eigen::VectorXd::Zero(6);
   Eigen::VectorXd current_vel = Eigen::VectorXd::Zero(6);
   Eigen::VectorXd chassis_accel = Eigen::VectorXd::Zero(3);
-  Eigen::VectorXd accel = Eigen::VectorXd::Zero(6);
+  // Eigen::VectorXd accel = Eigen::VectorXd::Zero(6);
+  Eigen::VectorXd vel = Eigen::VectorXd::Zero(6);
   Eigen::VectorXd ddthetalist = Eigen::VectorXd::Zero(4);
   Eigen::VectorXd dthetalist = Eigen::VectorXd::Zero(4);
 
