@@ -11,7 +11,7 @@ class ImpedanceController
 public:
   ImpedanceController()
   {
-    force_pub = n_.advertise<geometry_msgs::Wrench>("/published_force", 100);
+    force_pub = n_.advertise<geometry_msgs::Wrench>("/published_force", 1000);
     position_sub = n_.subscribe("/gazebo/link_states", 1, &ImpedanceController::chatterCallback, this);
   }
 
@@ -57,15 +57,15 @@ public:
     ros::Rate loop_rate(100);
     while(ros::ok)
     {
-      Force= b*(vel_desired - vel_current)+k*(pos_desired - pos_current);
+      Force = b*(vel_desired - vel_current)+k*(pos_desired - pos_current);
 
-      ROS_INFO("Force");
-      ROS_INFO("x = %f",Force[0]);
+      // ROS_INFO("Force");
+      // ROS_INFO("x = %f",Force[0]);
       ROS_INFO("y = %f",Force[1]);
-      ROS_INFO("z = %f",Force[2]);
-      ROS_INFO("roll = %f",Force[3]);
-      ROS_INFO("pitch = %f",Force[4]);
-      ROS_INFO("yaw = %f",Force[5]);
+      // ROS_INFO("z = %f",Force[2]);
+      // ROS_INFO("roll = %f",Force[3]);
+      // ROS_INFO("pitch = %f",Force[4]);whdgkq
+      // ROS_INFO("yaw = %f",Force[5]);
 
       geometry_msgs::Wrench force_msg;
 
@@ -98,9 +98,9 @@ private:
  
 
 
-//not bad, go back
-   double b = 0.1;
-   double k = 10;
+
+   double b = 10;
+   double k = 50;
   
   double roll_desired, pitch_desired, yaw_desired;
   double roll_actual, pitch_actual, yaw_actual;
