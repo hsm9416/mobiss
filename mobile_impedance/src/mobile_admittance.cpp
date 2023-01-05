@@ -14,9 +14,9 @@ public:
     force_sub = n_.subscribe("/published_force", 1, &AdmittanceController::AdmittanceCallback, this);
     state_sub = n_.subscribe("/gazebo/link_states", 1, &AdmittanceController::StateCallback, this);
     joint_state_sub = n_.subscribe("/mobile_base/joint_states", 1, &AdmittanceController::JointStateCallback, this);
-    fl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_l_ew_joint_velocity_controller/command", 100);
-    fr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_r_ew_joint_velocity_controller/command", 100);
-    rl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_l_ew_joint_velocity_controller/command", 100);
+    fl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_l_ew_joint_velocity_controller/command", 1000);
+    fr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/f_r_ew_joint_velocity_controller/command", 1000);
+    rl_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_l_ew_joint_velocity_controller/command", 1000);
     rr_velocity_pub = n_.advertise<std_msgs::Float64>("/mobile_base/r_r_ew_joint_velocity_controller/command", 100);;
 
   }
@@ -81,11 +81,11 @@ public:
     ros::Rate loop_rate(100);
     while(ros::ok)
     {
-      M= 1;
-      B = 0.001;
-      K = 10; //20
+      M =   50;
+      B =   1;
+      K =   10; //20
 
-      accel = 1.0/M*(Force - B * current_vel - K * current_pose);
+      accel = 1/M*(Force - B * current_vel - K * current_pose);
     // desired_pose << 0,0,0,0,0,0;
     // chassis_vel = 1/B * (Force - K*current_pose);
 
@@ -110,8 +110,8 @@ public:
       double ps2 = sin(0);
       double pc2 = cos(0);
       // p_W3
-      double ps3 = sin(0);
-      double pc3 = cos(0);
+      double ps3 = sin(0);//not bad, go back
+      double pc3 = cos(0);  
       // p_W4
       double ps4 = sin(0);
       double pc4 = cos(0);
@@ -146,7 +146,7 @@ public:
 
       ddthetalist = jacobian_pinv * (dummy - jacobian_dot*joint_vel);
       dthetalist  = dthetalist + ddthetalist*dt; //?
-      
+    
       // dummy<< chassis_vel(0),chassis_vel(1),chassis_vel(5);
       
       // joint_vel = jacobian_pinv * dummy;
@@ -154,8 +154,14 @@ public:
 
       velocity1.data = joint_vel(0);
       velocity2.data = joint_vel(1);
-      velocity3.data = joint_vel(2);
-      velocity4.data = joint_vel(3);
+      velocity3.data = -joint_vel(2);
+      velocity4.data = -joint_vel(3);
+      
+      // velocity1.data = 2;
+      // velocity2.data = 2;
+      // velocity3.data = -2;
+      // velocity4.data = -2;
+
 
       fl_velocity_pub.publish(velocity1);
       rl_velocity_pub.publish(velocity2);
@@ -200,7 +206,7 @@ private:
   
   Eigen::VectorXd V = Eigen::VectorXd::Zero(8);
   double roll_actual, pitch_actual, yaw_actual;
-  double dt = 0.001;
+  double dt = 0.01;
   double M,B,K;
 
   std_msgs::Float64 velocity1;
